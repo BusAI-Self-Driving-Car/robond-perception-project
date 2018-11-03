@@ -61,7 +61,7 @@ def pcl_callback(pcl_msg):
     # Choose a voxel (also known as leaf) size
     # Note: this (1) is a poor choice of leaf size
     # Experiment and find the appropriate size!
-    LEAF_SIZE = 0.01
+    LEAF_SIZE = 0.005
 
     # Set the voxel (or leaf) size
     vox.set_leaf_size(LEAF_SIZE, LEAF_SIZE, LEAF_SIZE)
@@ -89,8 +89,21 @@ def pcl_callback(pcl_msg):
     # Assign axis and range to the passthrough filter object.
     filter_axis = 'y'
     passthrough.set_filter_field_name(filter_axis)
-    axis_min = -5
-    axis_max = -1.343
+    axis_min = -0.456
+    axis_max = 0.456
+    passthrough.set_filter_limits(axis_min, axis_max)
+
+    # Finally use the filter function to obtain the resultant point cloud.
+    cloud_filtered = passthrough.filter()
+
+    # Create a PassThrough filter object.
+    passthrough = cloud_filtered.make_passthrough_filter()
+
+    # Assign axis and range to the passthrough filter object.
+    filter_axis = 'x'
+    passthrough.set_filter_field_name(filter_axis)
+    axis_min = 0.4
+    axis_max = 0.6
     passthrough.set_filter_limits(axis_min, axis_max)
 
     # Finally use the filter function to obtain the resultant point cloud.
@@ -107,7 +120,7 @@ def pcl_callback(pcl_msg):
     # Max distance for a point to be considered fitting the model
     # Experiment with different values for max_distance
     # for segmenting the table
-    max_distance = 0.01
+    max_distance = 0.006
     seg.set_distance_threshold(max_distance)
 
     # Call the segment function to obtain set of inlier indices and model coefficients
@@ -128,7 +141,7 @@ def pcl_callback(pcl_msg):
     # as well as minimum and maximum cluster size (in points)
     # NOTE: These are poor choices of clustering parameters
     # Your task is to experiment and find values that work for segmenting objects.
-    ec.set_ClusterTolerance(0.03)
+    ec.set_ClusterTolerance(0.025)
     ec.set_MinClusterSize(20)
     ec.set_MaxClusterSize(5000)
     # Search the k-d tree for clusters
@@ -170,7 +183,7 @@ def pcl_callback(pcl_msg):
 
     for index, pts_list in enumerate(cluster_indices):
         # Grab the points for the cluster
-        pcl_cluster = pcl_data.extract(pts_list)
+        pcl_cluster = extracted_outliers.extract(pts_list)
 
         # TODO: convert the cluster from pcl to ROS using helper function
         sample_cloud = pcl_to_ros(pcl_cluster)
@@ -207,7 +220,7 @@ def pcl_callback(pcl_msg):
     # Could add some logic to determine whether or not your object detections are robust
     # before calling pr2_mover()
     try:
-        pr2_mover(detected_objects_list)
+        pr2_mover(detected_objects)
     except rospy.ROSInterruptException:
         pass
 
@@ -215,22 +228,67 @@ def pcl_callback(pcl_msg):
 def pr2_mover(object_list):
 
     # TODO: Initialize variables
+    test_scene_num = Int32()
+    object_name    = String()
+    pick_pose      = Pose()
+    place_pose     = Pose()
+    arm_name       = String()
+    yaml_dict_list = []
+
+    # Update test scene number based on the selected test.
+    test_scene_num.data = 1
 
     # TODO: Get/Read parameters
+    object_list_param = rospy.get_param('/object_list')
+    dropbox_param     = rospy.get_param('/dropbox')
 
     # TODO: Parse parameters into individual variables
 
+
     # TODO: Rotate PR2 in place to capture side tables for the collision map
+    # # Rotate Right
+    # pr2_base_mover_pub.publish(-1.57)
+    # rospy.sleep(15.0)
+    # # Rotate Left
+    # pr2_base_mover_pub.publish(1.57)
+    # rospy.sleep(30.0)
+    # # Rotate Center
+    # pr2_base_mover_pub.publish(0)
+
+    # Calculate detected objects centroids.
+    labels = []
+    centroids = [] # to be list of tuples (x, y, z)
+    for object in object_list:
+        labels.append(object.label)
+        points_arr = ros_to_pcl(object.cloud).to_array()
+        centroids.append(np.mean(points_arr, axis=0)[:3])
 
     # TODO: Loop through the pick list
+    for i in range(0, len(object_list_param)):
 
         # TODO: Get the PointCloud for a given object and obtain it's centroid
+        try:
+            index = labels.index(object_name.data)
+        except ValueError:
+            print "Object not detected: %s" %object_name.data
+            continue
+
+        pick_pose.position.x = np.asscalar(centroids[index][0])
+        pick_pose.position.y = np.asscalar(centroids[index][1])
+        pick_pose.position.z = np.asscalar(centroids[index][2])
 
         # TODO: Create 'place_pose' for the object
+        position = search_dictionaries('group', object_group, 'position', dropbox_param)
+        place_pose.position.x = position[0]
+        place_pose.position.y = position[1]
+        place_pose.position.z = position[2]
 
         # TODO: Assign the arm to be used for pick_place
+        arm_name.data = search_dictionaries('group', object_group, 'name', dropbox_param)
 
         # TODO: Create a list of dictionaries (made with make_yaml_dict()) for later output to yaml format
+        yaml_dict = make_yaml_dict(test_scene_num, arm_name, object_name, pick_pose, place_pose)
+        yaml_dict_list.append(yaml_dict)
 
         # Wait for 'pick_place_routine' service to come up
         rospy.wait_for_service('pick_place_routine')
@@ -239,7 +297,7 @@ def pr2_mover(object_list):
             pick_place_routine = rospy.ServiceProxy('pick_place_routine', PickPlace)
 
             # TODO: Insert your message variables to be sent as a service request
-            resp = pick_place_routine(TEST_SCENE_NUM, OBJECT_NAME, WHICH_ARM, PICK_POSE, PLACE_POSE)
+            resp = pick_place_routine(test_scene_num, object_name, arm_name, pick_pose, place_pose)
 
             print ("Response: ",resp.success)
 
@@ -247,7 +305,8 @@ def pr2_mover(object_list):
             print "Service call failed: %s"%e
 
     # TODO: Output your request parameters into output yaml file
-
+    yaml_filename = 'output_'+str(test_scene_num.data)+'.yaml'
+    send_to_yaml(yaml_filename, yaml_dict_list)
 
 
 if __name__ == '__main__':
@@ -270,7 +329,7 @@ if __name__ == '__main__':
     detected_objects_pub = rospy.Publisher("/detected_objects", DetectedObjectsArray, queue_size=1)
 
     # TODO: Load Model From disk
-    model = pickle.load(open('model.sav', 'rb'))
+    model = pickle.load(open('model_1.sav', 'rb'))
     clf = model['classifier']
     encoder = LabelEncoder()
     encoder.classes_ = model['classes']
