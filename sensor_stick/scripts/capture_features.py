@@ -24,9 +24,14 @@ if __name__ == '__main__':
     rospy.init_node('capture_node')
 
     models = [\
+       'sticky_notes',
+       'book',
+       'snacks',
        'biscuits',
+       'eraser',
+       'soap2',
        'soap',
-       'soap2']
+       'glue']
 
     # Disable gravity and delete the ground plane
     initial_setup()
@@ -35,7 +40,7 @@ if __name__ == '__main__':
     for model_name in models:
         spawn_model(model_name)
 
-        for i in range(100):
+        for i in range(1000):
             # make five attempts to get a valid a point cloud then give up
             sample_was_good = False
             try_count = 0
@@ -60,4 +65,4 @@ if __name__ == '__main__':
         delete_model()
 
 
-    pickle.dump(labeled_features, open('training_set_1.sav', 'wb'))
+    pickle.dump(labeled_features, open('training_set_3.sav', 'wb'))

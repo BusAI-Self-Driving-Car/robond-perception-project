@@ -46,6 +46,12 @@ def send_to_yaml(yaml_filename, dict_list):
     with open(yaml_filename, 'w') as outfile:
         yaml.dump(data_dict, outfile, default_flow_style=False)
 
+# Function to search list of dictionaries and return a selected value in selected dictionary
+def search_dictionaries(key1, value1, key2, list_of_dictionaries):
+    selected_dic = [element for element in list_of_dictionaries if element[key1] == value1][0]
+    selected_val = selected_dic.get(key2)
+    return selected_val
+
 # Callback function for your Point Cloud Subscriber
 def pcl_callback(pcl_msg):
 
@@ -103,7 +109,7 @@ def pcl_callback(pcl_msg):
     filter_axis = 'x'
     passthrough.set_filter_field_name(filter_axis)
     axis_min = 0.4
-    axis_max = 0.6
+    axis_max = 0.8
     passthrough.set_filter_limits(axis_min, axis_max)
 
     # Finally use the filter function to obtain the resultant point cloud.
@@ -227,16 +233,19 @@ def pcl_callback(pcl_msg):
 # function to load parameters and request PickPlace service
 def pr2_mover(object_list):
 
+    yaml_only = True # no motion
+
     # TODO: Initialize variables
     test_scene_num = Int32()
     object_name    = String()
+    object_group = String()
     pick_pose      = Pose()
     place_pose     = Pose()
     arm_name       = String()
     yaml_dict_list = []
 
     # Update test scene number based on the selected test.
-    test_scene_num.data = 1
+    test_scene_num.data = 3
 
     # TODO: Get/Read parameters
     object_list_param = rospy.get_param('/object_list')
@@ -263,50 +272,77 @@ def pr2_mover(object_list):
         points_arr = ros_to_pcl(object.cloud).to_array()
         centroids.append(np.mean(points_arr, axis=0)[:3])
 
+    request_count = 0
+    success_count = 0
+
     # TODO: Loop through the pick list
     for i in range(0, len(object_list_param)):
+        request_count += 1
 
-        # TODO: Get the PointCloud for a given object and obtain it's centroid
-        try:
-            index = labels.index(object_name.data)
-        except ValueError:
-            print "Object not detected: %s" %object_name.data
-            continue
+    	# Parse parameters into individual variables
+        object_name.data = object_list_param[i]['name']
+        object_group.data = object_list_param[i]['group']
 
-        pick_pose.position.x = np.asscalar(centroids[index][0])
-        pick_pose.position.y = np.asscalar(centroids[index][1])
-        pick_pose.position.z = np.asscalar(centroids[index][2])
+       	# Loop through the pick list and look for the requested object
+        for the_object in object_list:
+    	    match_count = 0
+    	    if the_object.label == object_name.data:
+                match_count += 1
 
-        # TODO: Create 'place_pose' for the object
-        position = search_dictionaries('group', object_group, 'position', dropbox_param)
-        place_pose.position.x = position[0]
-        place_pose.position.y = position[1]
-        place_pose.position.z = position[2]
+        		# Get the PointCloud for a given object and obtain it's centroid
+                labels.append(the_object.label)
+                points_arr = ros_to_pcl(the_object.cloud).to_array()
+                centroid = np.mean(points_arr, axis=0)[:3]
+                top = np.max(points_arr, axis=0)[:3]
+                bot = np.min(points_arr, axis=0)[:3]
+                height = np.asscalar(top[2])-np.asscalar(bot[2])
+                centroid = [np.asscalar(centroid[0]),np.asscalar(centroid[1]),np.asscalar(centroid[2])]
+                centroids.append(centroid)
+                print "Found %s at: %f %f %f height=%f" % (object_name.data, centroid[0], centroid[1], centroid[2], height)
 
-        # TODO: Assign the arm to be used for pick_place
-        arm_name.data = search_dictionaries('group', object_group, 'name', dropbox_param)
+            	# Assign the arm to be used for pick_place
+                if object_group.data == 'green':
+                    arm_name.data = 'right'
+                    place_pose.position.x = -0.1-float(success_count)*0.2	# move back a little bit for each object
+                    place_pose.position.y = -0.71				# so as not to stack...
+                    place_pose.position.z = 0.605
+                else:
+                    arm_name.data = 'left'
+                    place_pose.position.x = -0.1-float(success_count)*0.2
+                    place_pose.position.y = 0.71
+                    place_pose.position.z = 0.605
 
-        # TODO: Create a list of dictionaries (made with make_yaml_dict()) for later output to yaml format
-        yaml_dict = make_yaml_dict(test_scene_num, arm_name, object_name, pick_pose, place_pose)
-        yaml_dict_list.append(yaml_dict)
+                pick_pose.position.x = centroid[0]
+                pick_pose.position.y = centroid[1]
+                pick_pose.position.z = centroid[2]-height
 
-        # Wait for 'pick_place_routine' service to come up
-        rospy.wait_for_service('pick_place_routine')
+                print "Scene %d, picking up object %s that I found, with my %s arm, and placing it in the %s bin." % (test_scene_num.data, object_name.data, arm_name.data, object_group.data)
 
-        try:
-            pick_place_routine = rospy.ServiceProxy('pick_place_routine', PickPlace)
+                # Create a list of dictionaries (made with make_yaml_dict()) for later output to yaml format
+                yaml_dict = make_yaml_dict(test_scene_num, arm_name, object_name, pick_pose, place_pose)
+                yaml_dict_list.append(yaml_dict)
 
-            # TODO: Insert your message variables to be sent as a service request
-            resp = pick_place_routine(test_scene_num, object_name, arm_name, pick_pose, place_pose)
 
-            print ("Response: ",resp.success)
+        if yaml_only == False:
 
-        except rospy.ServiceException, e:
-            print "Service call failed: %s"%e
+            # Wait for 'pick_place_routine' service to come up
+            rospy.wait_for_service('pick_place_routine')
 
-    # TODO: Output your request parameters into output yaml file
-    yaml_filename = 'output_'+str(test_scene_num.data)+'.yaml'
-    send_to_yaml(yaml_filename, yaml_dict_list)
+            try:
+                pick_place_routine = rospy.ServiceProxy('pick_place_routine', PickPlace)
+
+                # Insert message variables to be sent as a service request
+                resp = pick_place_routine(test_scene_num, object_name, arm_name, pick_pose, place_pose)
+
+                print "Response to pick_place_routine service request: ", resp.success
+                if resp.success == True:
+                    success_count += 1
+
+            except rospy.ServiceException, e:
+                print "Service call failed: %s" % e
+
+	# Output your request parameters into output yaml file
+	send_to_yaml('output_%d.yaml' % test_scene_num.data, yaml_dict_list)
 
 
 if __name__ == '__main__':
@@ -327,9 +363,10 @@ if __name__ == '__main__':
     # Message Types "Marker" and "DetectedObjectsArray" , respectively
     object_markers_pub = rospy.Publisher("/object_markers", Marker, queue_size=1)
     detected_objects_pub = rospy.Publisher("/detected_objects", DetectedObjectsArray, queue_size=1)
+    pr2_base_mover_pub   = rospy.Publisher("/pr2/world_joint_controller/command", Float64, queue_size=10)
 
     # TODO: Load Model From disk
-    model = pickle.load(open('model_1.sav', 'rb'))
+    model = pickle.load(open('model_3.sav', 'rb'))
     clf = model['classifier']
     encoder = LabelEncoder()
     encoder.classes_ = model['classes']
