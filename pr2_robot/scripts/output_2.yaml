@@ -8,9 +8,9 @@ object_list:
       y: 0.0
       z: 0.0
     position:
-      x: 0.5640828609466553
-      y: 0.02591262385249138
-      z: 0.46837127208709717
+      x: 0.5641895532608032
+      y: 0.026867493987083435
+      z: 0.4702402949333191
   place_pose:
     orientation:
       w: 0.0
@@ -31,32 +31,9 @@ object_list:
       y: 0.0
       z: 0.0
     position:
-      x: 0.5640828609466553
-      y: 0.02591262385249138
-      z: 0.46837127208709717
-  place_pose:
-    orientation:
-      w: 0.0
-      x: 0.0
-      y: 0.0
-      z: 0.0
-    position:
-      x: -0.1
-      y: -0.71
-      z: 0.605
-  test_scene_num: 2
-- arm_name: right
-  object_name: biscuits
-  pick_pose:
-    orientation:
-      w: 0.0
-      x: 0.0
-      y: 0.0
-      z: 0.0
-    position:
-      x: 0.5640828609466553
-      y: 0.02591262385249138
-      z: 0.46837127208709717
+      x: 0.5641895532608032
+      y: 0.026867493987083435
+      z: 0.4702402949333191
   place_pose:
     orientation:
       w: 0.0
@@ -77,9 +54,9 @@ object_list:
       y: 0.0
       z: 0.0
     position:
-      x: 0.5640828609466553
-      y: 0.02591262385249138
-      z: 0.46837127208709717
+      x: 0.5641895532608032
+      y: 0.026867493987083435
+      z: 0.4702402949333191
   place_pose:
     orientation:
       w: 0.0
@@ -92,6 +69,29 @@ object_list:
       z: 0.605
   test_scene_num: 2
 - arm_name: left
+  object_name: book
+  pick_pose:
+    orientation:
+      w: 0.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    position:
+      x: 0.5641895532608032
+      y: 0.026867493987083435
+      z: 0.4702402949333191
+  place_pose:
+    orientation:
+      w: 0.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    position:
+      x: -0.1
+      y: 0.71
+      z: 0.605
+  test_scene_num: 2
+- arm_name: left
   object_name: soap2
   pick_pose:
     orientation:
@@ -100,9 +100,9 @@ object_list:
       y: 0.0
       z: 0.0
     position:
-      x: 0.5640828609466553
-      y: 0.02591262385249138
-      z: 0.46837127208709717
+      x: 0.5641895532608032
+      y: 0.026867493987083435
+      z: 0.4702402949333191
   place_pose:
     orientation:
       w: 0.0

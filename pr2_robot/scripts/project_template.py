@@ -245,7 +245,7 @@ def pr2_mover(object_list):
     yaml_dict_list = []
 
     # Update test scene number based on the selected test.
-    test_scene_num.data = 3
+    test_scene_num.data = 2
 
     # TODO: Get/Read parameters
     object_list_param = rospy.get_param('/object_list')
@@ -366,7 +366,7 @@ if __name__ == '__main__':
     pr2_base_mover_pub   = rospy.Publisher("/pr2/world_joint_controller/command", Float64, queue_size=10)
 
     # TODO: Load Model From disk
-    model = pickle.load(open('model_3.sav', 'rb'))
+    model = pickle.load(open('model_2.sav', 'rb'))
     clf = model['classifier']
     encoder = LabelEncoder()
     encoder.classes_ = model['classes']
