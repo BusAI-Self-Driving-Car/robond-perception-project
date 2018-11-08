@@ -21,10 +21,135 @@ Given a cluttered tabletop scenario, you must implement a perception pipeline us
 The steps are the following:
 
 - Downsample the point cloud by applying a Voxel Grid Filter.
-- Add a statistical outlier filter to remove noise from the data.
 - Apply a Passthrough Filter to isolate the table and objects.
 - Perform RANSAC plane fitting to identify the table.
 - Use the Passthrough Filter to create new point clouds containing the table and objects separately.
+
+**Raw Data**
+
+Provided a saved point cloud, tabletop.pcd, as shown below, we aimed to separate the table top and the objects.
+
+- Table.pcd - Containing only the points that belong to the table
+- Objects.pcd - Containing all the tabletop objects
+
+<p align="center"> <img src="./writeup_images/pcl_viewer_tabletop_3dview.png"> </p>
+
+**Downsample with a Voxel Grid Filter**
+
+RGB-D cameras provide feature rich and particularly dense point clouds, meaning, more points are packed in per unit volume than, for example, a Lidar point cloud. Running computation on a full resolution point cloud can be slow and may not yield any improvement on results obtained using a more sparsely sampled point cloud.
+
+In the case, it is advantageous to downsample the data. A VoxelGrid Downsampling Filter is used to derive a point cloud that has fewer points but should still do a good job of representing the input point cloud as a whole.
+
+<p align="center"> <img src="./writeup_images/voxel_plot.png"> </p>
+
+The word "pixel" is short for "picture element". Similarly, the word "voxel" is short for "volume element". Just as you can divide the 2D image into a regular grid of area elements, as shown in the image on the left above, you can divide up your 3D point cloud, into a regular 3D grid of volume elements as shown on the right. Each individual cell in the grid is now a voxel and the 3D grid is known as a "voxel grid".
+
+A voxel grid filter allows you to downsample the data by taking a spatial average of the points in the cloud confined by each voxel. You can adjust the sampling size by setting the voxel size along each dimension. The set of points which lie within the bounds of a voxel are assigned to that voxel and statistically combined into one output point.
+
+<p align="center"> <img src="./writeup_images/pcl_viewer_tabletop_voxeled.png"> </p>
+
+The code is as below,
+
+```python
+# Create a VoxelGrid filter object for our input point cloud
+vox = pcl_data.make_voxel_grid_filter()
+
+# Choose a voxel (also known as leaf) size
+# Note: this (1) is a poor choice of leaf size
+# Experiment and find the appropriate size!
+LEAF_SIZE = 0.0025
+
+# Set the voxel (or leaf) size
+vox.set_leaf_size(LEAF_SIZE, LEAF_SIZE, LEAF_SIZE)
+
+# Call the filter function to obtain the resultant downsampled point cloud
+cloud_filtered = vox.filter()
+```
+
+**Remain table top and object Cloud with a Passthrough Filter**
+
+The Pass Through Filter works much like a cropping tool, which allows you to crop any given 3D point cloud by specifying an axis with cut-off values along that axis. The region you allow to pass through, is often referred to as **region of interest**.
+
+For instance, in our tabletop scene we know that the table is roughly in the center of our robot’s field of view. Hence by using a Pass Through Filter we can select a region of interest to remove some of the excess data.
+
+Applying a Pass Through filter along z axis (the height with respect to the ground) to our tabletop scene in the range 0.6 to 1.1 and along y axis in the range -2.0 to -1.4 gives the following result:
+
+<p align="center"> <img src="./writeup_images/pcl_viewer_tabletop_passthrough_filtered.png"> </p>
+
+Well, it looks good. Only the table top and the objects were remained.
+
+The code is as below,
+
+```Python
+# Filter in z direction
+# PassThrough filter
+# Create a PassThrough filter object.
+passthrough = cloud_filtered.make_passthrough_filter()
+
+# Assign axis and range to the passthrough filter object.
+filter_axis = 'z'
+passthrough.set_filter_field_name(filter_axis)
+axis_min = 0.6
+axis_max = 1.1
+passthrough.set_filter_limits(axis_min, axis_max)
+
+# Finally use the filter function to obtain the resultant point cloud.
+cloud_filtered = passthrough.filter()
+
+# Filter in z direction
+# PassThrough filter
+# Create a PassThrough filter object.
+passthrough = cloud_filtered.make_passthrough_filter()
+
+# Assign axis and range to the passthrough filter object.
+filter_axis = 'y'
+passthrough.set_filter_field_name(filter_axis)
+axis_min = -2.0
+axis_max = -1.4
+passthrough.set_filter_limits(axis_min, axis_max)
+
+# Finally use the filter function to obtain the resultant point cloud.
+cloud_filtered = passthrough.filter()
+```
+
+**Isolate table top with RANSAC plane fitting**
+
+Random Sample Consensus or "RANSAC" is an algorithm, that you can use to identify points in the dataset that belong to a particular model. In the case of the 3D scene, the model could be a plane, a cylinder, a box, or any other common shape.
+
+The RANSAC algorithm assumes that all of the data in a dataset is composed of both inliers and outliers, where inliers can be defined by a particular model with a specific set of parameters, while outliers do not fit that model and hence can be discarded.
+
+With a prior knowledge of a certain shape being present in a given data set, we can use RANSAC to estimate what pieces of the point cloud set belong to that shape by assuming a particular model.
+
+By modeling the table as a plane, we can remove it from the point cloud to obtain the following result:
+
+<p align="center"> <img src="./writeup_images/pcl_viewer_objects_only.png"> </p>
+
+Since the top of the table in the scene is the single most prominent plane, after ground removal, we can effectively use RANSAC to identify points that belong to the table and discard/filter out those points. As a result, only the table top remains in the point cloud as shown below,
+
+<p align="center"> <img src="./writeup_images/pcl_viewer_table_only.png"> </p>
+
+Below is the code,
+
+```python
+# Create the segmentation object
+seg = cloud_filtered.make_segmenter()
+
+# Set the model you wish to fit
+seg.set_model_type(pcl.SACMODEL_PLANE)
+seg.set_method_type(pcl.SAC_RANSAC)
+
+# Max distance for a point to be considered fitting the model
+# Experiment with different values for max_distance
+# for segmenting the table
+max_distance = 0.01
+seg.set_distance_threshold(max_distance)
+
+# Call the segment function to obtain set of inlier indices and model coefficients
+inliers, coefficients = seg.segment()
+
+extracted_inliers = cloud_filtered.extract(inliers, negative=False) # table top
+extracted_outliers = cloud_filtered.extract(inliers, negative=True) # objects
+```
 
 ### Exercise 2 Pipeline: clustering for segmentation.
 
