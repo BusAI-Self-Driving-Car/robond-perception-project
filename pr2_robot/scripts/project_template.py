@@ -76,6 +76,8 @@ def pcl_callback(pcl_msg):
     cloud_filtered = vox.filter()
 
     # TODO: PassThrough Filter
+
+    # Filter in z direction
     # Create a PassThrough filter object.
     passthrough = cloud_filtered.make_passthrough_filter()
 
@@ -92,6 +94,7 @@ def pcl_callback(pcl_msg):
     # Create a PassThrough filter object.
     passthrough = cloud_filtered.make_passthrough_filter()
 
+    # Filter in y direction
     # Assign axis and range to the passthrough filter object.
     filter_axis = 'y'
     passthrough.set_filter_field_name(filter_axis)
@@ -105,6 +108,7 @@ def pcl_callback(pcl_msg):
     # Create a PassThrough filter object.
     passthrough = cloud_filtered.make_passthrough_filter()
 
+    # Filter in x direction
     # Assign axis and range to the passthrough filter object.
     filter_axis = 'x'
     passthrough.set_filter_field_name(filter_axis)
