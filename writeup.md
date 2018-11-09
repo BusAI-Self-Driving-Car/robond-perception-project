@@ -194,9 +194,9 @@ ec = white_cloud.make_EuclideanClusterExtraction()
 # as well as minimum and maximum cluster size (in points)
 # NOTE: These are poor choices of clustering parameters
 # Your task is to experiment and find values that work for segmenting objects.
-ec.set_ClusterTolerance(0.03)
+ec.set_ClusterTolerance(0.02)
 ec.set_MinClusterSize(20)
-ec.set_MaxClusterSize(5000)
+ec.set_MaxClusterSize(10000)
 # Search the k-d tree for clusters
 ec.set_SearchMethod(tree)
 # Extract indices for each of the discovered clusters
@@ -239,14 +239,89 @@ The clouds of clusters are as shown below in Rviz.
 
 - Populate the compute_color_histograms() and compute_normal_histograms() functions within features.py in /sensor_stick/src/sensor_stick to generate correct histogram results.
 
+#### Feature extraction
+
+The color features are constructed like This
+
+```python
+# TODO: Compute histograms
+x_hist = np.histogram(channel_1_vals, bins=32, range=(0, 256))
+y_hist = np.histogram(channel_2_vals, bins=32, range=(0, 256))
+z_hist = np.histogram(channel_3_vals, bins=32, range=(0, 256))
+
+# TODO: Concatenate and normalize the histograms
+hist_features = np.concatenate((x_hist[0], y_hist[0], z_hist[0])).astype(np.float64)
+```
+
+Similarly, the normal features are like
+
+```python
+# TODO: Compute histograms of normal values (just like with color)
+x_hist = np.histogram(norm_x_vals, bins=32, range=(-1.0, 1.0))
+y_hist = np.histogram(norm_y_vals, bins=32, range=(-1.0, 1.0))
+z_hist = np.histogram(norm_z_vals, bins=32, range=(-1.0, 1.0))
+
+# TODO: Concatenate and normalize the histograms
+hist_features = np.concatenate((x_hist[0], y_hist[0], z_hist[0])).astype(np.float64)
+```
+
+Bring up the gazebo environment with,
+
+```bash
+roslaunch sensor_stick training.launch
+```
+
+Run the feature extraction command by
+
+```bash
+rosrun sensor_stick capture_features.py
+```
+
+#### Tain a SVM classifier
+
+Run
+
+```bash
+rosrun sensor_stick train_svm.py
+```
+
+Then we get_param
+
+<p align="center"> <img src="./writeup_images/ex3_svm_1.png"> </p>
+
+<p align="center"> <img src="./writeup_images/ex3_svm_2.png"> </p>
+
+which shows high accuracies after 1000 samples, with 7000 as training samples and remained as test samples.
+
+#### Object recognition
+
+Bring up the gazebo environment with,
+
+```bash
+roslaunch sensor_stick robot_spawn.launch
+```
+
+Run the object recognition command by
+
+```bash
+rosrun sensor_stick object_recognition.py
+```
+
+<p align="center"> <img src="./writeup_images/ex3_ob_recog_1.png"> </p>
+
+<p align="center"> <img src="./writeup_images/ex3_ob_recog_2.png"> </p>
+
+As the images above shown, the recognition performs well with 100% success rate.
+
 ### Pick and Place Setup
 
 For all three tabletop setups (`test*.world`), perform object recognition, then read in respective pick list (`pick_list_*.yaml`). Next construct the messages that would comprise a valid `PickPlace` request output them to `.yaml` format.
 
-And here's another image!
-![demo-2](https://user-images.githubusercontent.com/20687560/28748286-9f65680e-7468-11e7-83dc-f1a32380b89c.png)
+#### Test 1 World
 
-Spend some time at the end to discuss your code, what techniques you used, what worked and why, where the implementation might fail and how you might improve it if you were going to pursue this project further.  
+#### Test 2 World
+
+#### Test 3 World
 
 ## 3. Future work
 
