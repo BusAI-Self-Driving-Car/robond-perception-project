@@ -385,7 +385,7 @@ The training result
 
 <p align="center"> <img src="./writeup_images/test_2_svm_2.png"> </p>
 
-As in *output_2.yaml* and the rviz display as shown below, *biscuits, soap, book and soap2* are recognized correctly which means 100% accuracy.
+As in *output_2.yaml* and the rviz display as shown below, *biscuits, soap, book and soap2* are recognized correctly which means 80% accuracy.
 
 <p align="center"> <img src="./writeup_images/test_2_rviz.png"> </p>
 
