@@ -291,7 +291,7 @@ Then we get_param
 
 <p align="center"> <img src="./writeup_images/ex3_svm_2.png"> </p>
 
-which shows high accuracies after 1000 samples, with 7000 as training samples and remained as test samples.
+which shows high accuracies after capturing 1000 samples for each object.
 
 #### Object recognition
 
@@ -317,11 +317,111 @@ As the images above shown, the recognition performs well with 100% success rate.
 
 For all three tabletop setups (`test*.world`), perform object recognition, then read in respective pick list (`pick_list_*.yaml`). Next construct the messages that would comprise a valid `PickPlace` request output them to `.yaml` format.
 
+#### creating a ROS node to subscribe the cloud
+
+```python
+    pcl_sub = rospy.Subscriber("/pr2/world/points", pc2.PointCloud2, pcl_callback, queue_size=1)
+```
+
+### Test the worlds
+
+To test with the project, first run:
+
+```bash
+$ roslaunch pr2_robot pick_place_project.launch
+```
+
+and then,
+
+```bash
+$ rosrun pr2_robot project_pipeline.py
+```
+
 #### Test 1 World
+
+The object list is as followed,
+
+```
+object_list:
+  - name: biscuits
+    group: green
+  - name: soap
+    group: green
+  - name: soap2
+    group: red
+```
+
+The training result
+
+<p align="center"> <img src="./writeup_images/test_1_svm_1.png"> </p>
+
+<p align="center"> <img src="./writeup_images/test_1_svm_2.png"> </p>
+
+As in *output_1.yaml* and the rviz display as shown below, *biscuits, soap and soap2* are recognized correctly which means 100% accuracy.
+
+<p align="center"> <img src="./writeup_images/test_1_rviz.png"> </p>
 
 #### Test 2 World
 
+The object list is as followed,
+
+```
+object_list:
+  - name: biscuits
+    group: green
+  - name: soap
+    group: green
+  - name: book
+    group: red
+  - name: soap2
+    group: red
+  - name: glue
+    group: red
+```
+
+The training result
+
+<p align="center"> <img src="./writeup_images/test_2_svm_1.png"> </p>
+
+<p align="center"> <img src="./writeup_images/test_2_svm_2.png"> </p>
+
+As in *output_2.yaml* and the rviz display as shown below, *biscuits, soap, book and glue* are recognized correctly which means 100% accuracy.
+
+<p align="center"> <img src="./writeup_images/test_2_rviz.png"> </p>
+
 #### Test 3 World
+
+The object list is as followed,
+
+```
+object_list:
+  - name: sticky_notes
+    group: red
+  - name: book
+    group: red
+  - name: snacks
+    group: green
+  - name: biscuits
+    group: green
+  - name: eraser
+    group: red
+  - name: soap2
+    group: green
+  - name: soap
+    group: green
+  - name: glue
+    group: red
+```
+
+The training result
+
+<p align="center"> <img src="./writeup_images/test_3_svm_1.png"> </p>
+
+<p align="center"> <img src="./writeup_images/test_3_svm_2.png"> </p>
+
+As in *output_3.yaml* and the rviz display as shown below, *sticky_notes, book, snacks, biscuits, eraser, soap and soap2* are recognized correctly which means 87.5% accuracy.
+
+<p align="center"> <img src="./writeup_images/test_3_rviz.png"> </p>
 
 ## 3. Future work
 
