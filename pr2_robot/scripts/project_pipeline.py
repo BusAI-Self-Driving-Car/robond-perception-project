@@ -67,7 +67,7 @@ def pcl_callback(pcl_msg):
     # Choose a voxel (also known as leaf) size
     # Note: this (1) is a poor choice of leaf size
     # Experiment and find the appropriate size!
-    LEAF_SIZE = 0.0025
+    LEAF_SIZE = 0.005
 
     # Set the voxel (or leaf) size
     vox.set_leaf_size(LEAF_SIZE, LEAF_SIZE, LEAF_SIZE)
@@ -100,8 +100,8 @@ def pcl_callback(pcl_msg):
     # Assign axis and range to the passthrough filter object.
     filter_axis = 'y'
     passthrough.set_filter_field_name(filter_axis)
-    axis_min = -2.0
-    axis_max = -1.4
+    axis_min = -0.4
+    axis_max = 0.4
     passthrough.set_filter_limits(axis_min, axis_max)
 
     # Finally use the filter function to obtain the resultant point cloud.
@@ -237,7 +237,7 @@ def pr2_mover(object_list):
     yaml_dict_list = []
 
     # Update test scene number based on the selected test.
-    test_scene_num.data = 2
+    test_scene_num.data = 1
 
     # TODO: Get/Read parameters
     object_list_param = rospy.get_param('/object_list')
@@ -358,7 +358,7 @@ if __name__ == '__main__':
     pr2_base_mover_pub   = rospy.Publisher("/pr2/world_joint_controller/command", Float64, queue_size=10)
 
     # TODO: Load Model From disk
-    model = pickle.load(open('model_2.sav', 'rb'))
+    model = pickle.load(open('model_1.sav', 'rb'))
     clf = model['classifier']
     encoder = LabelEncoder()
     encoder.classes_ = model['classes']
